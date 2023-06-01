@@ -12,6 +12,7 @@ int main(void) {
     FILE *f = fopen("/dev/tty", "r+");
     SCREEN *screen = newterm(NULL, f, f);
     set_term(screen);
+    //initscr();
 
     noecho();
 

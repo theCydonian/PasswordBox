@@ -2,7 +2,8 @@ LIBS = -lncurses -ltinfo
 LDFLAGS  = ${LIBS}
 
 box: box.c box.h
-	cc -o box box.c ${LDFLAGS}
+	cc -static -o box box.c ${LDFLAGS}
 
 install:
-	cp ./box /usr/local/bin/
+	rm /usr/local/bin/box
+	cp ./box /usr/local/bin/box
