@@ -1,5 +1,4 @@
 #include "box.h"
-#include <sodium.h>
 
 void memory_error(char* input) {
     if (input == NULL) {
