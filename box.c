@@ -1,13 +1,26 @@
 #include "box.h"
+#include <sodium.h>
 
 void memory_error(char* input) {
     if (input == NULL) {
-        fprintf(stderr, "Out of memory.\n");
+        fprintf(stderr, "Malloc Failed.\n");
+        exit(1);
+    }
+}
+
+void memory_error_sodium_free(char* input, char* free_on_fail) {
+    if (input == NULL) {
+        fprintf(stderr, "Malloc Failed.\n");
+        sodium_free(free_on_fail);
         exit(1);
     }
 }
 
 int main(void) {
+    if (sodium_init() < 0) {
+        fprintf(stderr, "Sodium could not be initialized.\n");
+        exit(1);
+    }
     // init screen and sets up screen
     FILE *f = fopen("/dev/tty", "r+");
     SCREEN *screen = newterm(NULL, f, f);
@@ -44,32 +57,43 @@ int main(void) {
     wrefresh(textWin);
 
     // handle typed chars:
-    int size = 8;
-    int length = 0;
-    char* output = malloc(sizeof(char) * size);
+    uint64_t size = 8;
+    uint64_t length = 0;
+    char* output = sodium_malloc(sizeof(char) * size);
     memory_error(output);
 
     int max = textWinWidth - 3;
     int pos = 0;
 
     while (true) {
-        char newChar = getch();
+        char newChar = getch(); // TODO: remove int refs
 
         if (length >= size) {
             size += 8;
-            output = realloc(output, size * sizeof(char));
-            memory_error(output);
+            char* new_output = sodium_malloc(sizeof(char) * size);
+            memory_error_sodium_free(new_output, output);
+            for (uint64_t i = 0; i < size - 8; i++) {
+                new_output[i] = output[i];
+            }
+            sodium_free(output);
+            output = new_output;
         }
-
         if (newChar != '\n') {
-            output[length] = newChar;
-            length++;
+            if (newChar == 127) {
+                if (length > 0) {
+                    length--;
+                    pos = (pos - 1) % max;
+                }
+            } else {
+                output[length] = newChar;
+                length++;
 
-            pos = pos % max + 1;
+                pos = pos % max + 1;
+            }
 
             char* pwdText = malloc(sizeof(char) * max);
             memory_error(pwdText);
-            for (int i = 0; i < max; i++) {
+            for (uint64_t i = 0; i < max; i++) {
                 if (i < pos) {
                     pwdText[i] = '*'; // I don't like this char
                 } else {
@@ -85,8 +109,14 @@ int main(void) {
             free(pwdText);
         } else {
             output[length] = '\0';
-            output = realloc(output, (length) * sizeof(char));
-            memory_error(output);
+
+            char* new_output = sodium_malloc(sizeof(char) * (length + 1));
+            memory_error_sodium_free(new_output, output);
+            for (uint64_t i = 0; i < length + 1; i++) {
+                new_output[i] = output[i];
+            }
+            sodium_free(output);
+            output = new_output;
             break;
         }
     }
@@ -95,6 +125,7 @@ int main(void) {
     endwin();
     fflush(stdout);
     printf(output, "%s");
-    free(output);
+    sodium_free(output);
+    fclose(f);
     return 0;
 }

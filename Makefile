@@ -1,9 +1,16 @@
-LIBS = -lncurses -ltinfo
-LDFLAGS  = ${LIBS}
+CC = gcc
+CFLAGS = -Wall -O2 -static
+LIBS = -lncurses -ltinfo -lsodium
 
 box: box.c box.h
-	cc -static -o box box.c ${LDFLAGS}
+	$(CC) $(CFLAGS) -o box box.c $(LIBS)
 
 install:
-	rm /usr/local/bin/box
+	rm -f /usr/local/bin/box
 	cp ./box /usr/local/bin/box
+
+clean:
+	rm -f ./box
+
+uninstall:
+	rm -f /usr/local/bin/box
